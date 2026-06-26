@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Спички — математическая игра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Rubik:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF6EE; --ink:#3A352E; --muted:#8A8073;
+    --teal:#0F6E56; --teal-d:#0B5743; --amber:#BA7517;
+    --wood:#E6C593; --wood-d:#C89B5C; --head:#C8402B; --glow:#F0852E;
+    --card:#FFFFFF; --line:#EADfce;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Nunito",system-ui,sans-serif;
+    min-height:100vh; display:flex; justify-content:center;
+    padding:18px 14px 40px;
+  }
+  .wrap{width:100%; max-width:500px}
+  header{text-align:center; margin-bottom:14px}
+  h1{font-family:"Rubik",sans-serif; font-weight:700; font-size:34px; margin:0; color:var(--teal); letter-spacing:.5px}
+  .sub{color:var(--muted); font-size:15px; margin-top:4px}
+
+  .levels{display:flex; gap:6px; justify-content:center; margin:16px 0 6px; flex-wrap:wrap}
+  .lvl{
+    border:2px solid var(--teal); background:transparent; color:var(--teal);
+    font-family:"Rubik",sans-serif; font-weight:500; font-size:15px;
+    width:42px; height:42px; border-radius:12px; cursor:pointer; transition:.15s;
+  }
+  .lvl.active{background:var(--teal); color:#fff}
+  .lvl-name{text-align:center; color:var(--muted); font-size:13px; min-height:18px; margin-bottom:6px}
+
+  .tray{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:18px 14px; box-shadow:0 6px 20px rgba(120,90,40,.07);
+    min-height:170px; display:flex; align-items:center; justify-content:center;
+    flex-wrap:wrap; gap:9px 8px;
+  }
+  .match{ width:13px; height:96px; position:relative; transform-origin:center bottom;
+    animation:drop .25s ease both; }
+  .match .stick{ position:absolute; bottom:0; left:0; width:13px; height:84px; border-radius:5px;
+    background:linear-gradient(90deg,var(--wood) 30%,var(--wood-d)); box-shadow:inset -2px 0 0 rgba(0,0,0,.06);}
+  .match .head{ position:absolute; top:0; left:-1px; width:15px; height:18px; border-radius:50% 50% 45% 45%;
+    background:radial-gradient(circle at 40% 35%,#E2654B,var(--head)); }
+  .match.burning .head{ background:radial-gradient(circle at 50% 40%,#FFD15A,var(--glow)); box-shadow:0 0 14px 4px rgba(240,133,46,.8);}
+  .match.burning{ animation:burn .4s ease forwards }
+  @keyframes drop{from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:none}}
+  @keyframes burn{to{opacity:0; transform:translateY(-10px) scale(.6)}}
+
+  .count{text-align:center; font-weight:700; font-size:16px; margin:12px 0 2px; color:var(--ink)}
+  .count b{color:var(--teal); font-size:20px}
+  .msg{text-align:center; min-height:46px; font-size:16px; line-height:1.35; margin:6px 4px 4px; font-weight:600}
+  .msg.win{color:var(--teal)} .msg.lose{color:var(--amber)}
+
+  .actions{display:flex; gap:8px; margin-top:8px}
+  .take{flex:1; border:none; background:var(--teal); color:#fff; font-family:"Rubik",sans-serif;
+    font-weight:500; font-size:17px; padding:15px 0; border-radius:14px; cursor:pointer; transition:.15s}
+  .take:active{transform:translateY(1px)}
+  .take:disabled{background:#D8D0C2; color:#fff; cursor:not-allowed}
+
+  .new{display:block; width:100%; margin-top:10px; border:2px solid var(--teal); background:transparent;
+    color:var(--teal); font-family:"Rubik",sans-serif; font-weight:500; font-size:16px;
+    padding:12px 0; border-radius:14px; cursor:pointer}
+  .new:active{transform:translateY(1px)}
+
+  .score{display:flex; justify-content:center; gap:18px; margin-top:14px; color:var(--muted); font-size:14px; font-weight:600}
+  .score b{color:var(--ink)}
+
+  .rules{text-align:center; color:var(--muted); font-size:13.5px; line-height:1.4; margin-top:18px}
+  @media (prefers-reduced-motion: reduce){ .match,.match.burning{animation:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Спички</h1>
+    <div class="sub">Бери 1, 2 или 3 по очереди с компьютером.<br>Кто заберёт последнюю спичку — тот победил.</div>
+  </header>
+
+  <div class="levels" id="levels"></div>
+  <div class="lvl-name" id="lvlName">Уровень 1 · Лёгкий</div>
+
+  <div class="tray" id="tray"></div>
+  <div class="count">Осталось спичек: <b id="count">0</b></div>
+  <div class="msg" id="msg">Твой ход — выбирай, сколько взять.</div>
+
+  <div class="actions">
+    <button class="take" data-n="1">Взять 1</button>
+    <button class="take" data-n="2">Взять 2</button>
+    <button class="take" data-n="3">Взять 3</button>
+  </div>
+  <button class="new" id="new">Новая игра</button>
+
+  <div class="score">Ты: <b id="sYou">0</b> · Компьютер: <b id="sCpu">0</b></div>
+
+  <div class="rules">Ходишь первым ты. На уровне «Мастер» компьютер не прощает ошибок —
+    но если разработать стратегию, его можно обыграть.</div>
+</div>
+
+<script>
+(function(){
+  var LEVELS=[
+    {n:1,name:"Лёгкий",p:0.0},
+    {n:2,name:"Простой",p:0.3},
+    {n:3,name:"Средний",p:0.55},
+    {n:4,name:"Сложный",p:0.8},
+    {n:5,name:"Мастер",p:1.0}
+  ];
+  var level=1, pile=0, busy=false, over=false, turn='you';
+  var scores={you:0,cpu:0};
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var tray=document.getElementById('tray'), countEl=document.getElementById('count'),
+      msgEl=document.getElementById('msg'), levelsEl=document.getElementById('levels'),
+      lvlName=document.getElementById('lvlName'),
+      sYou=document.getElementById('sYou'), sCpu=document.getElementById('sCpu');
+  var takeBtns=[].slice.call(document.querySelectorAll('.take'));
+
+  LEVELS.forEach(function(L){
+    var b=document.createElement('button'); b.className='lvl'; b.textContent=L.n;
+    b.onclick=function(){ level=L.n; document.querySelectorAll('.lvl').forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active'); lvlName.textContent='Уровень '+L.n+' · '+L.name; newGame(); };
+    levelsEl.appendChild(b);
+  });
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, reduce?0:ms); }); }
+  function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+  function render(){
+    tray.innerHTML='';
+    for(var i=0;i<pile;i++){
+      var m=document.createElement('div'); m.className='match';
+      m.innerHTML='<div class="head"></div><div class="stick"></div>';
+      tray.appendChild(m);
+    }
+    countEl.textContent=pile;
+    updateButtons();
+  }
+  function updateButtons(){
+    takeBtns.forEach(function(b){
+      var n=+b.dataset.n;
+      b.disabled = over || busy || turn!=='you' || n>pile;
+    });
+  }
+  function setMsg(t,cls){ msgEl.textContent=t; msgEl.className='msg'+(cls?(' '+cls):''); }
+
+  function newGame(){
+    pile=rnd(12,20); while(pile%4===0) pile=rnd(12,20); // у первого игрока всегда есть выигрышная линия
+    busy=false; over=false; turn='you'; render();
+    setMsg('Твой ход — выбирай, сколько взять.');
+  }
+
+  async function burn(n){
+    var nodes=[].slice.call(tray.querySelectorAll('.match'));
+    for(var i=0;i<n;i++){ var node=nodes[nodes.length-1-i]; if(node) node.classList.add('burning'); }
+    await sleep(400);
+  }
+
+  function cpuChoose(){
+    var legal=Math.min(3,pile);
+    var L=LEVELS[level-1];
+    if(Math.random()<L.p){ var r=pile%4; return r===0? rnd(1,legal) : Math.min(r,legal); }
+    return rnd(1,legal);
+  }
+
+  function endGame(winner){
+    over=true; busy=false; updateButtons();
+    if(winner==='you'){ scores.you++; sYou.textContent=scores.you;
+      setMsg('🎉 Ты забрал последнюю спичку — победа! Жми «Новая игра».','win'); }
+    else{ scores.cpu++; sCpu.textContent=scores.cpu;
+      setMsg('Компьютер забрал последнюю спичку. В этот раз он выиграл — попробуй ещё!','lose'); }
+  }
+
+  async function cpuTurn(){
+    var k=cpuChoose();
+    setMsg('Компьютер думает…');
+    await sleep(650);
+    await burn(k); pile-=k; render();
+    if(pile===0){ endGame('cpu'); return; }
+    turn='you'; busy=false;
+    setMsg('Компьютер взял '+k+'. Теперь твой ход.');
+    updateButtons();
+  }
+
+  async function playerTake(n){
+    if(busy||over||turn!=='you'||n>pile) return;
+    busy=true; updateButtons();
+    await burn(n); pile-=n; render();
+    if(pile===0){ endGame('you'); return; }
+    turn='cpu';
+    setMsg('Ты взял '+n+'. Ход компьютера…');
+    await cpuTurn();
+  }
+
+  takeBtns.forEach(function(b){ b.onclick=function(){ playerTake(+b.dataset.n); }; });
+  document.getElementById('new').onclick=newGame;
+
+  document.querySelector('.lvl').classList.add('active');
+  newGame();
+})();
+</script>
+</body>
+</html>
